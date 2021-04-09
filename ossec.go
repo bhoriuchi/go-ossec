@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"strings"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -140,15 +139,19 @@ func (c *Client) run(cmd string) (string, error) {
 
 	go func(in io.Writer, output *bytes.Buffer) {
 		for {
-			if output != nil && strings.Contains(output.String(), "[sudo] password for ") {
-				_, err = in.Write([]byte(c.password + "\n"))
-				if err != nil {
-					break
+			if output != nil {
+				if output.Len() > 0 {
+					if bytes.Contains(output.Bytes(), []byte("[sudo] password for ")) {
+						_, err = in.Write([]byte(c.password + "\n"))
+						if err != nil {
+							break
+						}
+						if c.debug {
+							fmt.Println("put the password ---  end .")
+						}
+						break
+					}
 				}
-				if c.debug {
-					fmt.Println("put the password ---  end .")
-				}
-				break
 			}
 		}
 	}(in, stdoutB)
